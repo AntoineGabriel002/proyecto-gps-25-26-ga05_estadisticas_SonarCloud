@@ -28,3 +28,10 @@ func InitDatabase() {
 
 	fmt.Println("Conectado a Cassandra exitosamente")
 }
+
+func CloseDatabase() {
+	if Session != nil {
+		Session.Close()
+		fmt.Println("Sesión Cassandra cerrada")
+	}
+}

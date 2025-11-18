@@ -24,5 +24,6 @@ CREATE TABLE IF NOT EXISTS compraMerch (
   idUsuario int,
   idMerch int,
   fecha timestamp,
+  cantidad int,
   PRIMARY KEY ((idUsuario), fecha)
 );

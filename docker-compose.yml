@@ -1,10 +1,10 @@
-# docker-compose up -d (Levantar la base de datos)
+# docker-compose up -d 
 # Get-Content db\esquemas.cql | docker exec -i estadisticas_db cqlsh -u user -p 12345 (levantar el keyspace y meterle las tablas, powershell)
 # Get-Content db\datos.cql | docker exec -i estadisticas_db cqlsh -u user -p 12345 (meter los datos)
 
 services:
   estadisticas-db:
-    image: cassandra:5.0
+    image: cassandra:3.11.14
     container_name: estadisticas_db
     restart: always
     environment:
@@ -45,3 +45,5 @@ volumes:
 networks:
   estadisticas-network:
     driver: bridge
+    external: true
+    name: micro-servicios
