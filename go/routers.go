@@ -49,7 +49,7 @@ func NewRouterWithGinEngine(router *gin.Engine, handleFunctions ApiHandleFunctio
 		c.Next()
 	})
 
-	for _, route := range getRoutes(handleFunctions) {
+	for _, route := range Routes(handleFunctions) {
 		if route.HandlerFunc == nil {
 			route.HandlerFunc = DefaultHandleFunc
 		}
@@ -85,7 +85,7 @@ type ApiHandleFunctions struct {
 	UsuariosAPI UsuariosAPI
 }
 
-func getRoutes(handleFunctions ApiHandleFunctions) []Route {
+func Routes(handleFunctions ApiHandleFunctions) []Route {
 	return []Route{
 		{
 			"ComprasAlbumesPost",
