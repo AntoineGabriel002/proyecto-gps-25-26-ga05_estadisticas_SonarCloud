@@ -20,13 +20,15 @@ type EventosAPI struct {
 	DB *gocql.Session
 }
 
+const jsonInvalido = "JSON inválido"
+
 // Post /compras/albumes
 // Registrar compra de album
 func (api *EventosAPI) ComprasAlbumesPost(c *gin.Context) {
 	var req CompraAlbum
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "JSON invalido"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": jsonInvalido})
 		return
 	}
 
@@ -45,7 +47,7 @@ func (api *EventosAPI) ComprasMerchandisingPost(c *gin.Context) {
 	var req CompraMerch
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "JSON invalido"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": jsonInvalido})
 		return
 	}
 
@@ -64,12 +66,12 @@ func (api *EventosAPI) EscuchasPost(c *gin.Context) {
 	var req Escucha
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "JSON invalido"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": jsonInvalido})
 		return
 	}
 
 	query := `INSERT INTO escucha (idUsuario, idCancion, fecha) VALUES (?, ?, ?)`
-	
+
 	err := api.DB.Query(query, req.IdUsuario, req.IdCancion, req.Fecha).Exec()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error()})
