@@ -35,108 +35,58 @@ func (api *UsuariosAPI) UsuariosIdUsuarioEstadisticasGet(c *gin.Context) {
 		return
 	}
 
-	// Obtener parámetro de periodo
 	periodo := c.DefaultQuery("periodo", "total")
+	fechaFiltro, filtered := getFechaFiltro(periodo)
 
-	// Calcular fechas según el periodo
-	var fechaFiltro time.Time
-	now := time.Now()
-	
-	switch periodo {
-	case "mes":
-		fechaFiltro = now.AddDate(0, -1, 0)
-	case "anno":
-		fechaFiltro = now.AddDate(-1, 0, 0)
-	}
-
-	// Contadores
 	var totalEscuchas int32
 	var totalComprasAlbumes int32
 	var totalComprasMerch int32
 
-	// Contar escuchas
-	if periodo == "total" {
-		// Contar todas las escuchas
-		var count int
-		if err := api.DB.Query(`SELECT COUNT(*) FROM escucha WHERE idUsuario = ?`, int32(idUsuario)).Scan(&count); err != nil {
+	if !filtered {
+		if v, err := countTotal(api.DB, `SELECT COUNT(*) FROM escucha WHERE idUsuario = ?`, int32(idUsuario)); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error contando escuchas: " + err.Error()})
 			return
+		} else {
+			totalEscuchas = v
 		}
-		totalEscuchas = int32(count)
-	} else {
-		// Contar escuchas con filtro de fecha
-		iter := api.DB.Query(`SELECT idCancion, fecha FROM escucha WHERE idUsuario = ?`, int32(idUsuario)).Iter()
-		var idCancion int32
-		var fecha time.Time
-		
-		for iter.Scan(&idCancion, &fecha) {
-			if fecha.After(fechaFiltro) {
-				totalEscuchas++
-			}
-		}
-		if err := iter.Close(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando escuchas: " + err.Error()})
-			return
-		}
-	}
-
-	// Contar compras de álbumes
-	if periodo == "total" {
-		// Contar todas las compras de álbumes
-		var count int
-		if err := api.DB.Query(`SELECT COUNT(*) FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario)).Scan(&count); err != nil {
+		if v, err := countTotal(api.DB, `SELECT COUNT(*) FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario)); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error contando compras de álbumes: " + err.Error()})
 			return
+		} else {
+			totalComprasAlbumes = v
 		}
-		totalComprasAlbumes = int32(count)
-	} else {
-		// Contar compras de álbumes con filtro de fecha
-		iter := api.DB.Query(`SELECT idAlbum, fecha FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario)).Iter()
-		var idAlbum int32
-		var fecha time.Time
-		
-		for iter.Scan(&idAlbum, &fecha) {
-			if fecha.After(fechaFiltro) {
-				totalComprasAlbumes++
-			}
-		}
-		if err := iter.Close(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando compras de álbumes: " + err.Error()})
-			return
-		}
-	}
-
-	// Contar compras de merchandising
-	if periodo == "total" {
-		// Contar todas las compras de merchandising
-		var count int
-		if err := api.DB.Query(`SELECT COUNT(*) FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario)).Scan(&count); err != nil {
+		if v, err := countTotal(api.DB, `SELECT COUNT(*) FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario)); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error contando compras de merchandising: " + err.Error()})
 			return
+		} else {
+			totalComprasMerch = v
 		}
-		totalComprasMerch = int32(count)
 	} else {
-		// Contar compras de merchandising con filtro de fecha
-		iter := api.DB.Query(`SELECT idMerch, fecha FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario)).Iter()
-		var idMerch int32
-		var fecha time.Time
-		
-		for iter.Scan(&idMerch, &fecha) {
-			if fecha.After(fechaFiltro) {
-				totalComprasMerch++
-			}
+		if v, err := countSince(api.DB, `SELECT idCancion, fecha FROM escucha WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando escuchas: " + err.Error()})
+			return
+		} else {
+			totalEscuchas = v
 		}
-		if err := iter.Close(); err != nil {
+		if v, err := countSince(api.DB, `SELECT idAlbum, fecha FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando compras de álbumes: " + err.Error()})
+			return
+		} else {
+			totalComprasAlbumes = v
+		}
+		if v, err := countSince(api.DB, `SELECT idMerch, fecha FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando compras de merchandising: " + err.Error()})
 			return
+		} else {
+			totalComprasMerch = v
 		}
 	}
 
 	estadisticas := EstadisticasUsuario{
-		IdUsuario:          int32(idUsuario),
-		TotalEscuchas:      totalEscuchas,
+		IdUsuario:           int32(idUsuario),
+		TotalEscuchas:       totalEscuchas,
 		TotalComprasAlbumes: totalComprasAlbumes,
-		TotalComprasMerch:  totalComprasMerch,
+		TotalComprasMerch:   totalComprasMerch,
 	}
 
 	c.JSON(http.StatusOK, estadisticas)
@@ -280,4 +230,49 @@ func fetchMerchContenido(id int32) (string, string, error) {
 	}
 
 	return data.Merch.Nombre, urlImagen, nil
+}
+
+func getFechaFiltro(periodo string) (time.Time, bool) {
+	now := time.Now()
+	switch periodo {
+	case "mes":
+		return now.AddDate(0, -1, 0), true
+	case "anno":
+		return now.AddDate(-1, 0, 0), true
+	default:
+		return time.Time{}, false
+	}
+}
+
+func countTotal(db *gocql.Session, query string, args ...interface{}) (int32, error) {
+	var count int
+	if err := db.Query(query, args...).Scan(&count); err != nil {
+		return 0, err
+	}
+	return int32(count), nil
+}
+
+func countSince(db *gocql.Session, query string, argsAndUser ...interface{}) (int32, error) {
+	if len(argsAndUser) < 2 {
+		return 0, fmt.Errorf("args insuficientes")
+	}
+	fechaFiltro, ok := argsAndUser[len(argsAndUser)-1].(time.Time)
+	if !ok {
+		return 0, fmt.Errorf("último argumento debe ser time.Time")
+	}
+	args := argsAndUser[:len(argsAndUser)-1]
+
+	iter := db.Query(query, args...).Iter()
+	var dummy int32
+	var fecha time.Time
+	var total int32
+	for iter.Scan(&dummy, &fecha) {
+		if fecha.After(fechaFiltro) {
+			total++
+		}
+	}
+	if err := iter.Close(); err != nil {
+		return 0, err
+	}
+	return total, nil
 }
