@@ -25,8 +25,10 @@ type MetricasAPI struct {
 	DB *gocql.Session
 }
 
+const statusCode = "status code: %d"
+
 // Get /estadisticas/albumes/:idAlbum
-// Obtener estadisticas de un album 
+// Obtener estadisticas de un album
 func (api *MetricasAPI) EstadisticasAlbumesIdAlbumGet(c *gin.Context) {
 	idAlbumStr := c.Param("idAlbum")
 	idAlbum, err := strconv.Atoi(idAlbumStr)
@@ -57,7 +59,7 @@ func (api *MetricasAPI) EstadisticasAlbumesIdAlbumGet(c *gin.Context) {
 		iter := api.DB.Query(`SELECT idAlbum, fecha FROM compraAlbum WHERE idUsuario = ?`, usuario).Iter()
 		var currentIdAlbum int32
 		var fecha time.Time
-		
+
 		for iter.Scan(&currentIdAlbum, &fecha) {
 			if currentIdAlbum == int32(idAlbum) {
 				totalVentas++
@@ -79,9 +81,9 @@ func (api *MetricasAPI) EstadisticasAlbumesIdAlbumGet(c *gin.Context) {
 }
 
 // Get /estadisticas/canciones/:idCancion
-// Obtener estadisticas de una cancion 
+// Obtener estadisticas de una cancion
 func (api *MetricasAPI) EstadisticasCancionesIdCancionGet(c *gin.Context) {
-idCancionStr := c.Param("idCancion")
+	idCancionStr := c.Param("idCancion")
 	idCancion, err := strconv.Atoi(idCancionStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "idCancion inválido"})
@@ -109,7 +111,7 @@ idCancionStr := c.Param("idCancion")
 		iter := api.DB.Query(`SELECT idCancion, fecha FROM escucha WHERE idUsuario = ?`, usuario).Iter()
 		var currentIdCancion int32
 		var fecha time.Time
-		
+
 		for iter.Scan(&currentIdCancion, &fecha) {
 			if currentIdCancion == int32(idCancion) {
 				totalEscuchas++
@@ -122,8 +124,8 @@ idCancionStr := c.Param("idCancion")
 	}
 
 	estadisticas := EstadisticasCancion{
-		IdCancion:        int32(idCancion),
-		TotalEscuchas:    totalEscuchas,
+		IdCancion:         int32(idCancion),
+		TotalEscuchas:     totalEscuchas,
 		EscuchasUltimoMes: escuchasUltimoMes,
 	}
 
@@ -131,9 +133,9 @@ idCancionStr := c.Param("idCancion")
 }
 
 // Get /estadisticas/merchandising/:idMerch
-// Obtener estadisticas de un producto de merchandising 
+// Obtener estadisticas de un producto de merchandising
 func (api *MetricasAPI) EstadisticasMerchandisingIdMerchGet(c *gin.Context) {
-idMerchStr := c.Param("idMerch")
+	idMerchStr := c.Param("idMerch")
 	idMerch, err := strconv.Atoi(idMerchStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "idMerch inválido"})
@@ -163,7 +165,7 @@ idMerchStr := c.Param("idMerch")
 		var currentIdMerch int32
 		var fecha time.Time
 		var cantidad int32
-		
+
 		for iter.Scan(&currentIdMerch, &fecha, &cantidad) {
 			if currentIdMerch == int32(idMerch) {
 				totalVentas += cantidad // Sumar la cantidad en lugar de contar 1
@@ -181,10 +183,11 @@ idMerchStr := c.Param("idMerch")
 		VentasUltimoMes: ventasUltimoMes,
 	}
 
-	c.JSON(http.StatusOK, estadisticas)}
+	c.JSON(http.StatusOK, estadisticas)
+}
 
 // Get /ranking/canciones
-// Obtener ranking de canciones mas escuchadas 
+// Obtener ranking de canciones mas escuchadas
 func (api *MetricasAPI) RankingCancionesGet(c *gin.Context) {
 	// Obtener parámetros de consulta
 	limiteStr := c.DefaultQuery("limite", "10")
@@ -214,7 +217,7 @@ func (api *MetricasAPI) RankingCancionesGet(c *gin.Context) {
 
 	// Ejecutar consulta
 	iter := api.DB.Query(query, args...).Iter()
-	
+
 	// Contar escuchas por canción
 	contador := make(map[int32]int32)
 	var idCancion int32
@@ -254,11 +257,11 @@ func (api *MetricasAPI) RankingCancionesGet(c *gin.Context) {
 	for i, cancion := range canciones {
 		nombreCancion, nombreArtista, _ := api.obtenerInfoCancion(cancion.ID)
 		ranking = append(ranking, RankingCancion{
-			IdCancion:      cancion.ID,
-			NombreCancion:  nombreCancion,
-			NombreArtista:  nombreArtista,
-			Escuchas:       cancion.Escuchas,
-			Posicion:       int32(i + 1),
+			IdCancion:     cancion.ID,
+			NombreCancion: nombreCancion,
+			NombreArtista: nombreArtista,
+			Escuchas:      cancion.Escuchas,
+			Posicion:      int32(i + 1),
 		})
 	}
 
@@ -304,7 +307,7 @@ func (api *MetricasAPI) obtenerCancion(idCancion int32) (struct {
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("http://contenido-app:8080/canciones/%d", idCancion)
-	
+
 	resp, err := client.Get(url)
 	if err != nil {
 		return result, err
@@ -312,7 +315,7 @@ func (api *MetricasAPI) obtenerCancion(idCancion int32) (struct {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("status code: %d", resp.StatusCode)
+		return result, fmt.Errorf(statusCode, resp.StatusCode)
 	}
 
 	// Decodificar la respuesta completa
@@ -343,7 +346,7 @@ func (api *MetricasAPI) obtenerAlbum(idAlbum int32) (struct {
 
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("http://contenido-app:8080/albums/%d", idAlbum)
-	
+
 	resp, err := client.Get(url)
 	if err != nil {
 		return result, err
@@ -351,17 +354,17 @@ func (api *MetricasAPI) obtenerAlbum(idAlbum int32) (struct {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("status code: %d", resp.StatusCode)
+		return result, fmt.Errorf(statusCode, resp.StatusCode)
 	}
 
 	// Decodificar la respuesta completa del álbum
 	var albumData struct {
-		ID      int32  `json:"id"`
-		Nombre  string `json:"nombre"`
-		Duracion int32 `json:"duracion"`
-		Imagen  string `json:"imagen"`
-		Fecha   string `json:"fecha"`
-		Genero  struct {
+		ID       int32  `json:"id"`
+		Nombre   string `json:"nombre"`
+		Duracion int32  `json:"duracion"`
+		Imagen   string `json:"imagen"`
+		Fecha    string `json:"fecha"`
+		Genero   struct {
 			ID     int32  `json:"id"`
 			Nombre string `json:"nombre"`
 		} `json:"genero"`
@@ -394,7 +397,7 @@ func (api *MetricasAPI) obtenerArtista(idArtista int32) (struct {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("status code: %d", resp.StatusCode)
+		return result, fmt.Errorf(statusCode, resp.StatusCode)
 	}
 
 	var usuarioData struct {
