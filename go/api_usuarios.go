@@ -36,50 +36,54 @@ func (api *UsuariosAPI) UsuariosIdUsuarioEstadisticasGet(c *gin.Context) {
 	}
 
 	periodo := c.DefaultQuery("periodo", "total")
-	fechaFiltro, filtered := getFechaFiltro(periodo)
+	fechaFiltro, filtered := FechaFiltro(periodo)
 
 	var totalEscuchas int32
 	var totalComprasAlbumes int32
 	var totalComprasMerch int32
 
 	if !filtered {
-		if v, err := countTotal(api.DB, `SELECT COUNT(*) FROM escucha WHERE idUsuario = ?`, int32(idUsuario)); err != nil {
+		v, err := countTotal(api.DB, `SELECT COUNT(*) FROM escucha WHERE idUsuario = ?`, int32(idUsuario))
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error contando escuchas: " + err.Error()})
 			return
-		} else {
-			totalEscuchas = v
 		}
-		if v, err := countTotal(api.DB, `SELECT COUNT(*) FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario)); err != nil {
+		totalEscuchas = v
+
+		v, err = countTotal(api.DB, `SELECT COUNT(*) FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario))
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error contando compras de álbumes: " + err.Error()})
 			return
-		} else {
-			totalComprasAlbumes = v
 		}
-		if v, err := countTotal(api.DB, `SELECT COUNT(*) FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario)); err != nil {
+		totalComprasAlbumes = v
+
+		v, err = countTotal(api.DB, `SELECT COUNT(*) FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario))
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error contando compras de merchandising: " + err.Error()})
 			return
-		} else {
-			totalComprasMerch = v
 		}
+		totalComprasMerch = v
 	} else {
-		if v, err := countSince(api.DB, `SELECT idCancion, fecha FROM escucha WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro); err != nil {
+		v, err := countSince(api.DB, `SELECT idCancion, fecha FROM escucha WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando escuchas: " + err.Error()})
 			return
-		} else {
-			totalEscuchas = v
 		}
-		if v, err := countSince(api.DB, `SELECT idAlbum, fecha FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro); err != nil {
+		totalEscuchas = v
+
+		v, err = countSince(api.DB, `SELECT idAlbum, fecha FROM compraAlbum WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando compras de álbumes: " + err.Error()})
 			return
-		} else {
-			totalComprasAlbumes = v
 		}
-		if v, err := countSince(api.DB, `SELECT idMerch, fecha FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro); err != nil {
+		totalComprasAlbumes = v
+
+		v, err = countSince(api.DB, `SELECT idMerch, fecha FROM compraMerch WHERE idUsuario = ?`, int32(idUsuario), fechaFiltro)
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Error procesando compras de merchandising: " + err.Error()})
 			return
-		} else {
-			totalComprasMerch = v
 		}
+		totalComprasMerch = v
 	}
 
 	estadisticas := EstadisticasUsuario{
@@ -232,7 +236,7 @@ func fetchMerchContenido(id int32) (string, string, error) {
 	return data.Merch.Nombre, urlImagen, nil
 }
 
-func getFechaFiltro(periodo string) (time.Time, bool) {
+func FechaFiltro(periodo string) (time.Time, bool) {
 	now := time.Now()
 	switch periodo {
 	case "mes":
