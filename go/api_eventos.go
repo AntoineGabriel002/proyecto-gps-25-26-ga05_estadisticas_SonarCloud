@@ -27,7 +27,7 @@ const jsonInvalido = "JSON inválido"
 func (api *EventosAPI) ComprasAlbumesPost(c *gin.Context) {
 	var req CompraAlbum
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if c.ShouldBindJSON(&req) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": jsonInvalido})
 		return
 	}
@@ -46,7 +46,7 @@ func (api *EventosAPI) ComprasAlbumesPost(c *gin.Context) {
 func (api *EventosAPI) ComprasMerchandisingPost(c *gin.Context) {
 	var req CompraMerch
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if c.ShouldBindJSON(&req) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": jsonInvalido})
 		return
 	}
@@ -65,7 +65,7 @@ func (api *EventosAPI) ComprasMerchandisingPost(c *gin.Context) {
 func (api *EventosAPI) EscuchasPost(c *gin.Context) {
 	var req Escucha
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if c.ShouldBindJSON(&req) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": jsonInvalido})
 		return
 	}
